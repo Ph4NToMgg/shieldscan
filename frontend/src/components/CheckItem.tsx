@@ -29,7 +29,7 @@ function getStatusLabel(severity: Severity): string {
   return map[severity];
 }
 
-export default function CheckItem({ name, passed, detail, severity, aiExplanation }: CheckItemProps) {
+export default function CheckItem({ name, passed: _passed, detail, severity, aiExplanation }: CheckItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const color = getStatusColor(severity);
   const needsTruncation = detail.length > TRUNCATE_LENGTH;

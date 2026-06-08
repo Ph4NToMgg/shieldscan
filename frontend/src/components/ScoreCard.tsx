@@ -7,13 +7,6 @@ interface ScoreCardProps {
   failed: number;
 }
 
-function getScoreColor(score: number): string {
-  if (score >= 80) return 'var(--score-excellent)';
-  if (score >= 60) return 'var(--score-good)';
-  if (score >= 40) return 'var(--score-fair)';
-  return 'var(--score-critical)';
-}
-
 function getScoreRawColor(score: number): string {
   if (score >= 80) return '#22c55e';
   if (score >= 60) return '#84cc16';
@@ -55,7 +48,6 @@ const ARC_PATH = describeArc();
 const ARC_LENGTH = Math.PI * RADIUS;
 
 export default function ScoreCard({ score, totalChecks, passed, failed }: ScoreCardProps) {
-  const color = getScoreColor(score);
   const rawColor = getScoreRawColor(score);
   const label = getScoreLabel(score);
   const arcRef = useRef<SVGPathElement>(null);
