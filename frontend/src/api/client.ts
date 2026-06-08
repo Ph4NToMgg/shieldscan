@@ -6,7 +6,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 60000, // 60s — scans can take a while
+  timeout: 120000, // 120s — first request wakes up Render free tier
 });
 
 /**
