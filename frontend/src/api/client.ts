@@ -25,3 +25,13 @@ export async function getScan(id: string): Promise<ScanResponse> {
   const response = await api.get<ScanResponse>(`/${id}`);
   return response.data;
 }
+
+/**
+ * Fetch live statistics (total scans performed).
+ */
+export async function getStats(): Promise<{ total_scans: number }> {
+  const response = await axios.get<{ total_scans: number }>(
+    `${import.meta.env.VITE_API_URL}/scan/stats`,
+  );
+  return response.data;
+}

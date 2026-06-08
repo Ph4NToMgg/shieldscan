@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, field_validator
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -77,6 +77,19 @@ async def create_scan(
         ai_summary=scan_record.ai_summary,
         created_at=scan_record.created_at.isoformat(),
     )
+
+
+@router.get("/stats")
+async def get_stats(
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, int]:
+    """Return the total number of scans performed."""
+    try:
+        result = await db.execute(select(func.count()).select_from(ScanResult))
+        total = result.scalar_one_or_none() or 0
+        return {"total_scans": total}
+    except Exception:
+        return {"total_scans": 0}
 
 
 @router.get("/{scan_id}", response_model=ScanResponse)
