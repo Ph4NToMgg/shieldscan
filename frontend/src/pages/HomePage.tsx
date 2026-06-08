@@ -69,21 +69,28 @@ export default function HomePage() {
         </span>
       </div>
 
-      {/* Version — fixed top-right */}
+      {/* Version & Stats — fixed top-right */}
       <div style={{
         position: 'fixed',
         top: 0,
         right: 0,
         padding: '24px 28px',
         zIndex: 10,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        fontFamily: 'var(--font-mono)',
+        fontSize: 11,
+        color: 'var(--text-muted)',
       }}>
-        <span style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 11,
-          color: 'var(--text-muted)',
-        }}>
-          v1.0.0
-        </span>
+        {totalScans !== null && (
+          <>
+            <span className="pulse-dot" />
+            <span>{totalScans.toLocaleString()} SITES ANALYZED</span>
+            <span>|</span>
+          </>
+        )}
+        <span>v1.0.0</span>
       </div>
 
       {/* Center content */}
@@ -135,23 +142,7 @@ export default function HomePage() {
           <span className="feature-pill">AI EXPLANATIONS</span>
         </div>
 
-        {/* Live stats counter */}
-        {totalScans !== null && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            fontFamily: 'var(--font-mono)',
-            fontSize: 13,
-            fontWeight: 500,
-            letterSpacing: '0.15em',
-            textTransform: 'uppercase' as const,
-            color: 'var(--text-muted)',
-          }}>
-            <span className="pulse-dot" />
-            {totalScans.toLocaleString()} SITES ANALYZED
-          </div>
-        )}
+
       </div>
     </div>
   );
