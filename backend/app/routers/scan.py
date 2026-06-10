@@ -1,7 +1,8 @@
 import uuid
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, HTTPException, status
+# pyrefly: ignore [missing-import]
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +11,7 @@ from app.database import get_db
 from app.models.scan import ScanResult
 from app.scanners.orchestrator import run_all_scans
 from app.ai.explainer import generate_ai_summary
+from app.main import limiter
 
 router = APIRouter()
 
@@ -40,13 +42,15 @@ class ScanResponse(BaseModel):
 
 
 @router.post("", response_model=ScanResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")
 async def create_scan(
-    request: ScanRequest,
+    request: Request,
+    scan_request: ScanRequest,
     db: AsyncSession = Depends(get_db),
 ) -> ScanResponse:
     """Run a full security scan on the provided URL."""
     try:
-        scan_results = await run_all_scans(request.url)
+        scan_results = await run_all_scans(scan_request.url)
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -55,12 +59,12 @@ async def create_scan(
 
     ai_summary: str | None = None
     try:
-        ai_summary = await generate_ai_summary(request.url, scan_results)
+        ai_summary = await generate_ai_summary(scan_request.url, scan_results)
     except Exception:
         ai_summary = "AI summary is temporarily unavailable."
 
     scan_record = ScanResult(
-        url=request.url,
+        url=scan_request.url,
         score=scan_results["score"],
         results=scan_results,
         ai_summary=ai_summary,

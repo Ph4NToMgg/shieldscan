@@ -1,6 +1,7 @@
 import json
 from typing import Any
 
+# pyrefly: ignore [missing-import]
 import google.generativeai as genai
 
 from app.config import get_settings

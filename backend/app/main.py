@@ -1,7 +1,17 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+
+# pyrefly: ignore [missing-import]
+from fastapi import FastAPI, Request
+# pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
+# pyrefly: ignore [missing-import]
+from slowapi import Limiter, _rate_limit_exceeded_handler
+# pyrefly: ignore [missing-import]
+from slowapi.errors import RateLimitExceeded
+# pyrefly: ignore [missing-import]
+from slowapi.util import get_remote_address
+
 
 from app.config import get_settings
 from app.database import init_db
@@ -23,6 +33,10 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
