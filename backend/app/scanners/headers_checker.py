@@ -51,10 +51,23 @@ def _check_header_quality(header_name: str, header_value: str) -> str | None:
     value_lower = header_value.lower()
 
     if header_name == "Content-Security-Policy":
-        if "'unsafe-inline'" in value_lower:
-            issues.append("contains 'unsafe-inline' which allows inline scripts (XSS risk)")
-        if "'unsafe-eval'" in value_lower:
-            issues.append("contains 'unsafe-eval' which allows eval() (XSS risk)")
+        # Parse CSP into directives
+        directives: dict[str, str] = {}
+        for part in value_lower.split(";"):
+            part = part.strip()
+            if part:
+                tokens = part.split(None, 1)
+                if tokens:
+                    directives[tokens[0]] = tokens[1] if len(tokens) > 1 else ""
+
+        # Only flag unsafe-inline/unsafe-eval in script-src or default-src
+        # Having them in style-src is common and acceptable
+        script_scope = directives.get("script-src", "") + " " + directives.get("default-src", "")
+
+        if "'unsafe-inline'" in script_scope:
+            issues.append("script-src contains 'unsafe-inline' which allows inline scripts (XSS risk)")
+        if "'unsafe-eval'" in script_scope:
+            issues.append("script-src contains 'unsafe-eval' which allows eval() (XSS risk)")
         if "default-src *" in value_lower or "script-src *" in value_lower:
             issues.append("uses wildcard (*) source which defeats the purpose of CSP")
 

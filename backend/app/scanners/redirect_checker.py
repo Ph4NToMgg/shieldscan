@@ -50,6 +50,14 @@ async def check_redirect(url: str) -> RedirectCheckResult:
                 detail="HTTP serves content without redirecting to HTTPS. The site is accessible over an insecure connection.",
                 severity="critical",
             )
+        elif response.status_code in (403, 404, 405):
+            # Site blocks HTTP access entirely — this is a valid security approach
+            return RedirectCheckResult(
+                check="http_to_https_redirect",
+                passed=True,
+                detail=f"HTTP access is blocked ({response.status_code}). The site does not serve content over insecure HTTP.",
+                severity="ok",
+            )
         else:
             return RedirectCheckResult(
                 check="http_to_https_redirect",
