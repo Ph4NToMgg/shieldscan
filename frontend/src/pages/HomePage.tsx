@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import ScanForm from '../components/ScanForm';
-import { submitScan, getStats } from '../api/client';
+import { submitScan, getStats, getCredits } from '../api/client';
 import type { ScanResponse } from '../types';
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [totalScans, setTotalScans] = useState<number | null>(null);
+  const [credits, setCredits] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchStats() {
@@ -24,6 +27,24 @@ export default function HomePage() {
     const interval = setInterval(fetchStats, 600000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setCredits(null);
+      return;
+    }
+
+    async function fetchCredits() {
+      try {
+        const data = await getCredits();
+        setCredits(data.credits_remaining);
+      } catch {
+        /* silently ignore */
+      }
+    }
+
+    fetchCredits();
+  }, [user]);
 
   async function handleScan(url: string) {
     setIsLoading(true);
@@ -45,54 +66,6 @@ export default function HomePage() {
 
   return (
     <div className="page-container">
-      {/* Brand mark — fixed top-left */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        padding: '24px 28px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        zIndex: 10,
-      }}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="var(--accent)" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5Z" />
-        </svg>
-        <span style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 22,
-          color: 'var(--text-primary)',
-          lineHeight: 1,
-        }}>
-          ShieldScan
-        </span>
-      </div>
-
-      {/* Version & Stats — fixed top-right */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        right: 0,
-        padding: '24px 28px',
-        zIndex: 10,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        fontFamily: 'var(--font-mono)',
-        fontSize: 11,
-        color: 'var(--text-muted)',
-      }}>
-        {totalScans !== null && (
-          <>
-            <span className="pulse-dot" />
-            <span>{totalScans.toLocaleString()} SITES ANALYZED</span>
-            <span>|</span>
-          </>
-        )}
-        <span>v1.0.0</span>
-      </div>
-
       {/* Center content */}
       <div style={{
         flex: 1,
@@ -102,7 +75,7 @@ export default function HomePage() {
         justifyContent: 'center',
         padding: '0 32px',
         gap: 40,
-        marginTop: -60,
+        marginTop: 0,
       }}>
         {/* Heading */}
         <div style={{ textAlign: 'center', maxWidth: 700 }}>
@@ -127,8 +100,35 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Scan form */}
-        <ScanForm onSubmit={handleScan} isLoading={isLoading} />
+        {/* Scan form or sign-in prompt */}
+        {!authLoading && !user ? (
+          <div style={{ textAlign: 'center' }}>
+            <Link to="/login" className="home-signin-btn">
+              SIGN IN TO SCAN →
+            </Link>
+            <p style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
+              color: 'var(--text-muted)',
+              marginTop: 12,
+            }}>
+              Create a free account to start scanning
+            </p>
+          </div>
+        ) : (
+          <>
+            <ScanForm onSubmit={handleScan} isLoading={isLoading} />
+
+            {/* Credits info */}
+            {user && credits !== null && (
+              <div className="home-credits-info">
+                <span className="credits-badge">
+                  {credits} credit{credits !== 1 ? 's' : ''} remaining
+                </span>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Error */}
         {error && (
@@ -141,8 +141,6 @@ export default function HomePage() {
           <span className="feature-pill">SECURITY HEADERS</span>
           <span className="feature-pill">AI EXPLANATIONS</span>
         </div>
-
-
       </div>
     </div>
   );

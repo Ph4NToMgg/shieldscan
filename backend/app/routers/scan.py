@@ -10,9 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.scan import ScanResult
+from app.models.user_credits import UserCredits
 from app.scanners.orchestrator import run_all_scans
 from app.ai.explainer import generate_ai_summary
 from app.limiter import limiter
+from app.auth import require_auth
 
 router = APIRouter()
 
@@ -60,7 +62,9 @@ class ScanResponse(BaseModel):
     score: int
     results: dict
     ai_summary: str | None
+    user_id: str | None = None
     created_at: str
+    credits_remaining: int | None = None
 
 
 @router.post("", response_model=ScanResponse, status_code=status.HTTP_201_CREATED)
@@ -69,11 +73,37 @@ async def create_scan(
     request: Request,
     scan_request: ScanRequest,
     db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(require_auth),
 ) -> ScanResponse:
-    """Run a full security scan on the provided URL."""
+    """Run a full security scan on the provided URL. Requires authentication."""
+
+    # --- Credit check: get or create user credits row ---
+    result = await db.execute(
+        select(UserCredits).where(UserCredits.user_id == user_id)
+    )
+    user_credits = result.scalar_one_or_none()
+
+    if user_credits is None:
+        # First-time user: create credits row with 3 free credits
+        user_credits = UserCredits(user_id=user_id)
+        db.add(user_credits)
+        await db.flush()
+
+    if user_credits.credits_remaining <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="No scan credits remaining. Purchase more credits to continue.",
+        )
+
+    # Decrement credits
+    user_credits.credits_remaining -= 1
+
+    # --- Run scan ---
     try:
         scan_results = await run_all_scans(scan_request.url)
     except Exception as exc:
+        # Refund the credit on scan failure
+        user_credits.credits_remaining += 1
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Failed to scan URL: {str(exc)}",
@@ -90,6 +120,7 @@ async def create_scan(
         score=scan_results["score"],
         results=scan_results,
         ai_summary=ai_summary,
+        user_id=user_id,
     )
     db.add(scan_record)
     await db.flush()
@@ -101,8 +132,49 @@ async def create_scan(
         score=scan_record.score,
         results=scan_record.results,
         ai_summary=scan_record.ai_summary,
+        user_id=scan_record.user_id,
         created_at=scan_record.created_at.isoformat(),
+        credits_remaining=user_credits.credits_remaining,
     )
+
+
+@router.get("/history")
+async def get_scan_history(
+    db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(require_auth),
+) -> list[dict]:
+    """Return the authenticated user's scan history, newest first (max 50)."""
+    result = await db.execute(
+        select(ScanResult)
+        .where(ScanResult.user_id == user_id)
+        .order_by(ScanResult.created_at.desc())
+        .limit(50)
+    )
+    scans = result.scalars().all()
+    return [scan.to_dict() for scan in scans]
+
+
+@router.get("/credits")
+async def get_credits(
+    db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(require_auth),
+) -> dict:
+    """Return the authenticated user's credit balance."""
+    result = await db.execute(
+        select(UserCredits).where(UserCredits.user_id == user_id)
+    )
+    user_credits = result.scalar_one_or_none()
+
+    if user_credits is None:
+        # First-time user: create credits row with defaults
+        user_credits = UserCredits(user_id=user_id)
+        db.add(user_credits)
+        await db.flush()
+
+    return {
+        "credits_remaining": user_credits.credits_remaining,
+        "credits_total": user_credits.credits_total,
+    }
 
 
 @router.get("/stats")
@@ -141,5 +213,6 @@ async def get_scan(
         score=scan_record.score,
         results=scan_record.results,
         ai_summary=scan_record.ai_summary,
+        user_id=scan_record.user_id,
         created_at=scan_record.created_at.isoformat(),
     )

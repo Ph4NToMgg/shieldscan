@@ -22,6 +22,7 @@ class ScanResult(Base):
     score: Mapped[int] = mapped_column(Integer, nullable=False)
     results: Mapped[dict] = mapped_column(JSON, nullable=False)
     ai_summary: Mapped[str] = mapped_column(Text, nullable=True)
+    user_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -36,5 +37,6 @@ class ScanResult(Base):
             "score": self.score,
             "results": self.results,
             "ai_summary": self.ai_summary,
+            "user_id": self.user_id,
             "created_at": self.created_at.isoformat(),
         }

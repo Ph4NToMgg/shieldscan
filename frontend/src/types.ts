@@ -95,3 +95,17 @@ export interface ScanResponse {
   ai_summary: string | null;
   created_at: string;
 }
+
+/** Credits information for the logged-in user */
+export interface CreditsInfo {
+  credits_remaining: number;
+  credits_total: number;
+}
+
+/** A scan entry from the user's history */
+export interface HistoryScan {
+  id: string;
+  url: string;
+  score: number;
+  created_at: string;
+}

@@ -7,6 +7,7 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "postgresql+asyncpg://postgres:password@localhost:5432/shieldscan"
     GEMINI_API_KEY: str = ""
+    SUPABASE_URL: str = ""
     ALLOWED_ORIGINS: str = "http://localhost:5173"
 
     @property

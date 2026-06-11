@@ -13,6 +13,7 @@ from app.config import get_settings
 from app.database import init_db
 from app.limiter import limiter
 from app.routers import scan
+from app.models.user_credits import UserCredits  # noqa: F401 — register model with Base
 
 settings = get_settings()
 
