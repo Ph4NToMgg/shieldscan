@@ -11,19 +11,38 @@ from app.scanners.domain_checker import check_domain
 
 def _score_check(result: dict[str, Any], max_points: int) -> int:
     """
-    Score a single check result based on severity.
+    Score a single check result based on passed status and severity.
 
-    - ok:       100% of max_points
-    - warning:   60% of max_points (rounded)
-    - critical:   0  points
+    - passed + ok:       100% of max_points
+    - passed + warning:   60% of max_points (check passed but could be better)
+    - failed (any):        0  points (check failed — no credit)
     """
+    if not result.get("passed", False):
+        return 0
+
     severity = result.get("severity", "critical")
     if severity == "ok":
         return max_points
     elif severity == "warning":
         return round(max_points * 0.6)
-    else:  # critical
+    else:
         return 0
+
+# Weights for individual security headers, based on real-world importance.
+# Headers not in this map (e.g. leakage checks) get 0 base weight.
+HEADER_WEIGHTS: dict[str, int] = {
+    "Content-Security-Policy": 10,       # Critical: XSS protection
+    "Strict-Transport-Security": 8,      # Critical: forces HTTPS
+    "X-Frame-Options": 5,                # Important: clickjacking protection
+    "X-Content-Type-Options": 5,         # Important: MIME sniffing
+    "Referrer-Policy": 3,                # Moderate: privacy
+    "Permissions-Policy": 2,             # Minor: browser feature control
+    "X-Permitted-Cross-Domain-Policies": 2,  # Minor: Flash is dead
+}
+# Total header weight: 10+8+5+5+3+2+2 = 35
+# Total score: SSL(20) + Redirect(15) + Headers(35) + Mixed(15) + Cookies(10) + Domain(5) = 100
+
+LEAKAGE_PENALTY = 3  # Points subtracted per info leakage finding
 
 
 def _calculate_score(
@@ -37,32 +56,39 @@ def _calculate_score(
     """
     Calculate a security score from 0–100 based on scan results.
 
-    Scoring uses severity-based partial credit:
-    - ok:       full points
-    - warning:  60% of points
-    - critical: 0 points
+    Uses tiered weights — critical checks are worth more than nice-to-have ones.
+    Leakage findings (X-Powered-By, Server version) act as penalties.
 
-    Weights (total = 100):
-    - SSL certificate:          25 points
+    Weights (base total = 100):
+    - SSL certificate:          20 points
     - HTTP→HTTPS redirect:      15 points
-    - Security headers:          5 points each (7 headers = 35 points)
+    - Mixed content:            15 points
+    - Security headers:         35 points (tiered per header)
     - Cookie security:          10 points
-    - Mixed content:            10 points
     - Domain expiry:             5 points
+    - Info leakage:             -3 per finding (penalty)
     """
     score = 0
 
-    score += _score_check(ssl_result, 25)
+    score += _score_check(ssl_result, 20)
     score += _score_check(redirect_result, 15)
-
-    for header in header_results:
-        score += _score_check(header, 5)
-
+    score += _score_check(mixed_content_result, 15)
     score += _score_check(cookie_result, 10)
-    score += _score_check(mixed_content_result, 10)
     score += _score_check(domain_result, 5)
 
-    return min(score, 100)
+    for header in header_results:
+        header_name = header.get("name", "")
+        weight = HEADER_WEIGHTS.get(header_name, 0)
+
+        if weight > 0:
+            # Regular security header — score based on weight
+            score += _score_check(header, weight)
+        elif "(Leakage)" in header_name:
+            # Info leakage is a penalty — subtract points
+            if not header.get("passed", False):
+                score -= LEAKAGE_PENALTY
+
+    return max(0, min(score, 100))
 
 
 async def run_all_scans(url: str) -> dict[str, Any]:
