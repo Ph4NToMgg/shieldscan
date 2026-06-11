@@ -11,7 +11,7 @@ from app.database import get_db
 from app.models.scan import ScanResult
 from app.scanners.orchestrator import run_all_scans
 from app.ai.explainer import generate_ai_summary
-from app.main import limiter
+from app.limiter import limiter
 
 router = APIRouter()
 
