@@ -1,3 +1,4 @@
+import ipaddress
 import uuid
 from urllib.parse import urlparse
 
@@ -28,6 +29,27 @@ class ScanRequest(BaseModel):
             raise ValueError("URL must start with http:// or https://")
         if not parsed.netloc:
             raise ValueError("URL must have a valid domain")
+
+        hostname = parsed.hostname or ""
+
+        # Block localhost
+        if hostname in ("localhost", "127.0.0.1", "0.0.0.0", "::1"):
+            raise ValueError("Scanning localhost is not allowed")
+
+        # Block internal hostnames with no dots (e.g. http://internalserver/)
+        if "." not in hostname:
+            raise ValueError("Internal hostnames are not allowed")
+
+        # Block private IP ranges
+        try:
+            ip = ipaddress.ip_address(hostname)
+            if ip.is_private or ip.is_loopback or ip.is_link_local:
+                raise ValueError("Scanning private IP addresses is not allowed")
+        except ValueError as e:
+            if "not allowed" in str(e):
+                raise
+            pass  # hostname is a domain name, not an IP — that's fine
+
         return v
 
 
