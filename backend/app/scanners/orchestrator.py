@@ -9,6 +9,23 @@ from app.scanners.mixed_content_checker import check_mixed_content
 from app.scanners.domain_checker import check_domain
 
 
+def _score_check(result: dict[str, Any], max_points: int) -> int:
+    """
+    Score a single check result based on severity.
+
+    - ok:       100% of max_points
+    - warning:   60% of max_points (rounded)
+    - critical:   0  points
+    """
+    severity = result.get("severity", "critical")
+    if severity == "ok":
+        return max_points
+    elif severity == "warning":
+        return round(max_points * 0.6)
+    else:  # critical
+        return 0
+
+
 def _calculate_score(
     ssl_result: dict[str, Any],
     header_results: list[dict[str, Any]],
@@ -20,6 +37,11 @@ def _calculate_score(
     """
     Calculate a security score from 0–100 based on scan results.
 
+    Scoring uses severity-based partial credit:
+    - ok:       full points
+    - warning:  60% of points
+    - critical: 0 points
+
     Weights (total = 100):
     - SSL certificate:          25 points
     - HTTP→HTTPS redirect:      15 points
@@ -30,33 +52,15 @@ def _calculate_score(
     """
     score = 0
 
-    # SSL: 25 points
-    if ssl_result["passed"]:
-        if ssl_result["severity"] == "ok":
-            score += 25
-        elif ssl_result["severity"] == "warning":
-            score += 17
+    score += _score_check(ssl_result, 25)
+    score += _score_check(redirect_result, 15)
 
-    # Redirect: 15 points
-    if redirect_result["passed"]:
-        score += 15
-
-    # Headers: 5 points each
     for header in header_results:
-        if header["passed"]:
-            score += 5
+        score += _score_check(header, 5)
 
-    # Cookies: 10 points
-    if cookie_result["passed"]:
-        score += 10
-
-    # Mixed content: 10 points
-    if mixed_content_result["passed"]:
-        score += 10
-
-    # Domain expiry: 5 points
-    if domain_result["passed"]:
-        score += 5
+    score += _score_check(cookie_result, 10)
+    score += _score_check(mixed_content_result, 10)
+    score += _score_check(domain_result, 5)
 
     return min(score, 100)
 
