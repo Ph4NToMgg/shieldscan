@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy import DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSON, UUID
@@ -22,7 +23,7 @@ class ScanResult(Base):
     score: Mapped[int] = mapped_column(Integer, nullable=False)
     results: Mapped[dict] = mapped_column(JSON, nullable=False)
     ai_summary: Mapped[str] = mapped_column(Text, nullable=True)
-    user_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    user_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
