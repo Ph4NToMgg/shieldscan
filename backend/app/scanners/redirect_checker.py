@@ -62,13 +62,13 @@ async def check_redirect(url: str) -> RedirectCheckResult:
         return RedirectCheckResult(
             check="http_to_https_redirect",
             passed=False,
-            detail="Connection timed out when checking HTTP redirect.",
-            severity="warning",
+            detail="Connection timed out when checking HTTP redirect. Site may not redirect to HTTPS.",
+            severity="critical",
         )
     except httpx.RequestError as exc:
         return RedirectCheckResult(
             check="http_to_https_redirect",
             passed=False,
             detail=f"Could not connect via HTTP: {str(exc)}",
-            severity="warning",
+            severity="critical",
         )

@@ -61,13 +61,13 @@ async def check_mixed_content(url: str) -> MixedContentResult:
     """
     parsed_url = urlparse(url)
 
-    # Only relevant for HTTPS sites
+    # Sites not using HTTPS have ALL content unencrypted — worse than mixed content
     if parsed_url.scheme != "https":
         return MixedContentResult(
             check="mixed_content",
-            passed=True,
-            detail="Site uses HTTP — mixed content check is not applicable.",
-            severity="ok",
+            passed=False,
+            detail="Site does not use HTTPS. All traffic is transmitted unencrypted, which is worse than mixed content.",
+            severity="critical",
             mixed_urls=[],
         )
 
