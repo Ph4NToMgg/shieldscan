@@ -26,6 +26,32 @@ export interface RedirectResult {
   severity: Severity;
 }
 
+/** Result of the cookie security check */
+export interface CookieResult {
+  check: string;
+  passed: boolean;
+  detail: string;
+  severity: Severity;
+  cookies_analyzed: number;
+}
+
+/** Result of the mixed content check */
+export interface MixedContentResult {
+  check: string;
+  passed: boolean;
+  detail: string;
+  severity: Severity;
+  mixed_urls: string[];
+}
+
+/** Result of the domain expiry check */
+export interface DomainResult {
+  check: string;
+  passed: boolean;
+  detail: string;
+  severity: Severity;
+}
+
 /** Summary of overall check counts */
 export interface ScanSummary {
   total_checks: number;
@@ -41,6 +67,9 @@ export interface ScanResults {
   ssl: SSLResult;
   headers: HeaderResult[];
   redirect: RedirectResult;
+  cookies: CookieResult;
+  mixed_content: MixedContentResult;
+  domain: DomainResult;
 }
 
 /** Individual AI explanation for a check */

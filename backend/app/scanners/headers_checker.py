@@ -31,6 +31,14 @@ SECURITY_HEADERS: dict[str, dict[str, str]] = {
         "description": "Controls how much referrer information is sent with requests.",
         "severity_missing": "warning",
     },
+    "Permissions-Policy": {
+        "description": "Controls which browser features (camera, microphone, geolocation) the page can use.",
+        "severity_missing": "warning",
+    },
+    "X-Permitted-Cross-Domain-Policies": {
+        "description": "Restricts Adobe Flash and PDF cross-domain data loading.",
+        "severity_missing": "warning",
+    },
 }
 
 

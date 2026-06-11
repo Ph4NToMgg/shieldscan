@@ -188,6 +188,39 @@ export default function ResultPage() {
             aiExplanation={findExplanation(explanations, 'redirect')}
           />
 
+          {/* Cookie Security */}
+          {results.cookies && (
+            <CheckItem
+              name="Cookie Security"
+              passed={results.cookies.passed}
+              detail={results.cookies.detail}
+              severity={results.cookies.severity}
+              aiExplanation={findExplanation(explanations, 'cookie')}
+            />
+          )}
+
+          {/* Mixed Content */}
+          {results.mixed_content && (
+            <CheckItem
+              name="Mixed Content"
+              passed={results.mixed_content.passed}
+              detail={results.mixed_content.detail}
+              severity={results.mixed_content.severity}
+              aiExplanation={findExplanation(explanations, 'mixed')}
+            />
+          )}
+
+          {/* Domain Expiry */}
+          {results.domain && (
+            <CheckItem
+              name="Domain Expiry"
+              passed={results.domain.passed}
+              detail={results.domain.detail}
+              severity={results.domain.severity}
+              aiExplanation={findExplanation(explanations, 'domain')}
+            />
+          )}
+
           {/* Security Headers */}
           {results.headers.map((header) => (
             <CheckItem
