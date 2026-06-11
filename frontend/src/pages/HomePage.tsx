@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ScanForm from '../components/ScanForm';
-import { submitScan, getStats, getCredits } from '../api/client';
+import { submitScan, getCredits } from '../api/client';
 import type { ScanResponse } from '../types';
 
 export default function HomePage() {
@@ -10,23 +10,8 @@ export default function HomePage() {
   const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [totalScans, setTotalScans] = useState<number | null>(null);
   const [credits, setCredits] = useState<number | null>(null);
 
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const data = await getStats();
-        setTotalScans(data.total_scans);
-      } catch {
-        /* silently ignore — counter just won't show */
-      }
-    }
-
-    fetchStats();
-    const interval = setInterval(fetchStats, 600000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     if (!user) {
