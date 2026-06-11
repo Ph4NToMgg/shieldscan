@@ -42,6 +42,41 @@ SECURITY_HEADERS: dict[str, dict[str, str]] = {
 }
 
 
+def _check_header_quality(header_name: str, header_value: str) -> str | None:
+    """
+    Analyze the quality of specific security headers.
+    Returns a description of the issue, or None if the header is well-configured.
+    """
+    issues: list[str] = []
+    value_lower = header_value.lower()
+
+    if header_name == "Content-Security-Policy":
+        if "'unsafe-inline'" in value_lower:
+            issues.append("contains 'unsafe-inline' which allows inline scripts (XSS risk)")
+        if "'unsafe-eval'" in value_lower:
+            issues.append("contains 'unsafe-eval' which allows eval() (XSS risk)")
+        if "default-src *" in value_lower or "script-src *" in value_lower:
+            issues.append("uses wildcard (*) source which defeats the purpose of CSP")
+
+    elif header_name == "Strict-Transport-Security":
+        if "includesubdomains" not in value_lower:
+            issues.append("missing 'includeSubDomains' directive")
+        # Check max-age value
+        import re
+        max_age_match = re.search(r"max-age=(\d+)", value_lower)
+        if max_age_match:
+            max_age = int(max_age_match.group(1))
+            if max_age < 15768000:  # Less than 6 months
+                issues.append(f"max-age is {max_age}s (less than recommended 6 months)")
+
+    elif header_name == "X-Frame-Options":
+        valid_values = ("deny", "sameorigin")
+        if value_lower.strip() not in valid_values:
+            issues.append(f"unexpected value '{header_value}' (should be DENY or SAMEORIGIN)")
+
+    return "; ".join(issues) if issues else None
+
+
 async def check_headers(url: str) -> list[HeaderCheckResult]:
     """
     Check the presence of critical HTTP security headers.
@@ -64,15 +99,28 @@ async def check_headers(url: str) -> list[HeaderCheckResult]:
             header_value = response_headers.get(header_key)
 
             if header_value:
-                results.append(
-                    HeaderCheckResult(
-                        check="security_header",
-                        name=header_name,
-                        passed=True,
-                        detail=f"{header_name} is set: {header_value}",
-                        severity="ok",
+                # Check header quality for specific headers
+                quality_issue = _check_header_quality(header_name, header_value)
+                if quality_issue:
+                    results.append(
+                        HeaderCheckResult(
+                            check="security_header",
+                            name=header_name,
+                            passed=True,
+                            detail=f"{header_name} is set but has issues: {quality_issue}. Value: {header_value}",
+                            severity="warning",
+                        )
                     )
-                )
+                else:
+                    results.append(
+                        HeaderCheckResult(
+                            check="security_header",
+                            name=header_name,
+                            passed=True,
+                            detail=f"{header_name} is set: {header_value}",
+                            severity="ok",
+                        )
+                    )
             else:
                 severity = header_info["severity_missing"]
                 results.append(
@@ -84,6 +132,39 @@ async def check_headers(url: str) -> list[HeaderCheckResult]:
                         severity=severity,
                     )
                 )
+
+        # Check for information leakage headers
+        _LEAKAGE_HEADERS = {
+            "x-powered-by": "X-Powered-By",
+            "server": "Server",
+        }
+        for header_key, display_name in _LEAKAGE_HEADERS.items():
+            header_value = response_headers.get(header_key)
+            if header_value:
+                # "Server: nginx" alone is acceptable; detailed versions are not
+                import re
+                has_version = bool(re.search(r"\d+\.\d+", header_value))
+                if has_version:
+                    results.append(
+                        HeaderCheckResult(
+                            check="security_header",
+                            name=f"{display_name} (Leakage)",
+                            passed=False,
+                            detail=f"{display_name} header exposes server technology: '{header_value}'. This helps attackers find known vulnerabilities for this version.",
+                            severity="warning",
+                        )
+                    )
+                elif header_key == "x-powered-by":
+                    # X-Powered-By should ideally be removed entirely
+                    results.append(
+                        HeaderCheckResult(
+                            check="security_header",
+                            name=f"{display_name} (Leakage)",
+                            passed=False,
+                            detail=f"{display_name} header is present: '{header_value}'. Consider removing it to reduce information exposure.",
+                            severity="warning",
+                        )
+                    )
 
     except httpx.TimeoutException:
         for header_name in SECURITY_HEADERS:
