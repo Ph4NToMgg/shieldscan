@@ -124,7 +124,7 @@ async def create_scan(
         user_id=user_id,
     )
     db.add(scan_record)
-    await db.flush()
+    await db.commit()
     await db.refresh(scan_record)
 
     return ScanResponse(
@@ -170,7 +170,7 @@ async def get_credits(
         # First-time user: create credits row with defaults
         user_credits = UserCredits(user_id=user_id)
         db.add(user_credits)
-        await db.flush()
+        await db.commit()
 
     return {
         "credits_remaining": user_credits.credits_remaining,
