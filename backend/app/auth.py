@@ -1,9 +1,12 @@
 """JWT authentication via Supabase JWKS endpoint."""
 
+# pyrefly: ignore [missing-import]
 from fastapi import Depends, HTTPException, Request, status
 
 try:
+    # pyrefly: ignore [missing-import]
     import jwt
+    # pyrefly: ignore [missing-import]
     from jwt import PyJWKClient
 except ImportError:
     raise ImportError(
