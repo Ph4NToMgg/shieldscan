@@ -1,5 +1,7 @@
 """JWT authentication via Supabase JWKS endpoint."""
 
+from typing import Optional
+
 # pyrefly: ignore [missing-import]
 from fastapi import Depends, HTTPException, Request, status
 
@@ -19,7 +21,7 @@ from app.config import get_settings
 settings = get_settings()
 
 # JWKS client caches signing keys internally; lifespan_interval refreshes every 5 min
-_jwks_client: PyJWKClient | None = None
+_jwks_client: Optional[PyJWKClient] = None
 
 
 def get_jwks_client() -> PyJWKClient:
@@ -31,7 +33,7 @@ def get_jwks_client() -> PyJWKClient:
     return _jwks_client
 
 
-async def get_current_user(request: Request) -> str | None:
+async def get_current_user(request: Request) -> Optional[str]:
     """FastAPI dependency: extract and verify JWT from Authorization header.
 
     Returns the user_id (sub claim) if a valid token is present,
@@ -85,7 +87,7 @@ async def get_current_user(request: Request) -> str | None:
         )
 
 
-async def require_auth(user_id: str | None = Depends(get_current_user)) -> str:
+async def require_auth(user_id: Optional[str] = Depends(get_current_user)) -> str:
     """FastAPI dependency: require a valid authenticated user.
 
     Raises 401 if no user is authenticated.

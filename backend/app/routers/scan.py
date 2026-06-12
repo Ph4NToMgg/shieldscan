@@ -1,5 +1,6 @@
 import ipaddress
 import uuid
+from typing import Optional
 from urllib.parse import urlparse
 
 # pyrefly: ignore [missing-import]
@@ -61,10 +62,10 @@ class ScanResponse(BaseModel):
     url: str
     score: int
     results: dict
-    ai_summary: str | None
-    user_id: str | None = None
+    ai_summary: Optional[str] = None
+    user_id: Optional[str] = None
     created_at: str
-    credits_remaining: int | None = None
+    credits_remaining: Optional[int] = None
 
 
 @router.post("", response_model=ScanResponse, status_code=status.HTTP_201_CREATED)
@@ -109,7 +110,7 @@ async def create_scan(
             detail=f"Failed to scan URL: {str(exc)}",
         )
 
-    ai_summary: str | None = None
+    ai_summary: Optional[str] = None
     try:
         ai_summary = await generate_ai_summary(scan_request.url, scan_results)
     except Exception:
@@ -142,7 +143,7 @@ async def create_scan(
 async def get_scan_history(
     db: AsyncSession = Depends(get_db),
     user_id: str = Depends(require_auth),
-) -> list[dict]:
+) -> list:
     """Return the authenticated user's scan history, newest first (max 50)."""
     result = await db.execute(
         select(ScanResult)
@@ -180,7 +181,7 @@ async def get_credits(
 @router.get("/stats")
 async def get_stats(
     db: AsyncSession = Depends(get_db),
-) -> dict[str, int]:
+) -> dict:
     """Return the total number of scans performed."""
     try:
         result = await db.execute(select(func.count()).select_from(ScanResult))
