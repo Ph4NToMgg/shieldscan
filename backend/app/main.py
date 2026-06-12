@@ -43,8 +43,20 @@ logging.getLogger().addHandler(handler)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database tables on startup."""
+    """Initialize database tables and run schema migrations on startup."""
     await init_db()
+    
+    # Run migrations: add user_id column and index to scan_results if they don't exist
+    from app.database import engine
+    from sqlalchemy import text
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("ALTER TABLE scan_results ADD COLUMN IF NOT EXISTS user_id VARCHAR(255)"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_scan_results_user_id ON scan_results (user_id)"))
+            logger.info("Database migrations (scan_results.user_id) completed successfully.")
+    except Exception as e:
+        logger.error(f"Failed to run database migrations: {e}", exc_info=True)
+        
     yield
 
 
