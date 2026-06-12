@@ -307,6 +307,9 @@ input {
   color: var(--status-critical);
   font-size: 13px;
   font-family: var(--font-mono);
+  white-space: pre-wrap;
+  max-width: 600px;
+  text-align: left;
 }
 
 /* ========================================

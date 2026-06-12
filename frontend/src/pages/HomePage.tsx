@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import ScanForm from '../components/ScanForm';
 import { submitScan, getCredits } from '../api/client';
@@ -39,7 +40,22 @@ export default function HomePage() {
       const result: ScanResponse = await submitScan(url);
       navigate(`/result/${result.id}`, { state: { scanData: result } });
     } catch (err: unknown) {
-      if (err instanceof Error) {
+      if (axios.isAxiosError(err)) {
+        const serverError = err.response?.data;
+        if (serverError && typeof serverError === 'object') {
+          const detail = serverError.detail || serverError.error || '';
+          const tb = serverError.traceback || '';
+          if (detail && tb) {
+            setError(`${detail}\n\nTraceback:\n${tb}`);
+          } else if (detail) {
+            setError(typeof detail === 'string' ? detail : JSON.stringify(detail));
+          } else {
+            setError(err.message);
+          }
+        } else {
+          setError(err.message);
+        }
+      } else if (err instanceof Error) {
         setError(err.message);
       } else {
         setError('An unexpected error occurred. Please try again.');

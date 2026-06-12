@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 import logging
+import traceback
 
 # pyrefly: ignore [missing-import]
 from fastapi import FastAPI, Request
@@ -54,9 +55,14 @@ app.include_router(scan.router, prefix="/scan", tags=["scan"])
 async def global_exception_handler(request: Request, exc: Exception):
     """Catch unhandled exceptions and return JSON so CORS headers are applied."""
     logger.error(f"Unhandled error on {request.method} {request.url}: {exc}", exc_info=True)
+    tb = traceback.format_exc()
     return JSONResponse(
         status_code=500,
-        content={"detail": f"Internal server error: {type(exc).__name__}"},
+        content={
+            "detail": f"Internal server error: {type(exc).__name__}",
+            "error": str(exc),
+            "traceback": tb,
+        },
     )
 
 
