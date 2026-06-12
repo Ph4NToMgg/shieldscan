@@ -656,6 +656,7 @@ input {
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
+  position: relative;
 }
 
 .navbar-brand {
@@ -678,9 +679,18 @@ input {
 }
 
 .navbar-links {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 32px;
+}
+
+.navbar-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .navbar-link {
@@ -1142,6 +1152,16 @@ input {
 
   .navbar-brand-text {
     font-size: 17px;
+  }
+
+  .navbar-links {
+    position: static;
+    transform: none;
+    gap: 16px;
+  }
+
+  .navbar-stats {
+    display: none;
   }
 
   .auth-card {

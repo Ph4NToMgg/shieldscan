@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getCredits } from '../api/client';
+import { getCredits, getStats } from '../api/client';
 
 export default function Navbar() {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [credits, setCredits] = useState<number | null>(null);
+  const [totalScans, setTotalScans] = useState<number | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -25,6 +26,22 @@ export default function Navbar() {
 
     fetchCredits();
   }, [user]);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const data = await getStats();
+        setTotalScans(data.total_scans);
+      } catch {
+        /* server might be waking up */
+      }
+    }
+
+    fetchStats();
+
+    const keepAlive = setInterval(fetchStats, 10 * 60 * 1000);
+    return () => clearInterval(keepAlive);
+  }, []);
 
   async function handleLogout() {
     await signOut();
@@ -48,6 +65,14 @@ export default function Navbar() {
             <Link to="/history" className="navbar-link">
               History
             </Link>
+          )}
+          {totalScans !== null && (
+            <div className="navbar-stats">
+              <span className="stats-pulse" />
+              <span className="stats-text">
+                {totalScans.toLocaleString()} scan{totalScans !== 1 ? 's' : ''} performed
+              </span>
+            </div>
           )}
         </div>
 
