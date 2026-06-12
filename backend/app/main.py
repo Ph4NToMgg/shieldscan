@@ -22,6 +22,24 @@ from app.models.user_credits import UserCredits  # noqa: F401 — register model
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
+# In-memory log buffer for remote debugging
+debug_logs = []
+
+class InMemoryHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            log_entry = self.format(record)
+            debug_logs.append(log_entry)
+            if len(debug_logs) > 200:
+                debug_logs.pop(0)
+        except Exception:
+            pass
+
+# Configure root logger to output to our buffer
+handler = InMemoryHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logging.getLogger().addHandler(handler)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -70,4 +88,10 @@ async def global_exception_handler(request: Request, exc: Exception):
 async def health_check() -> dict:
     """Health check endpoint."""
     return {"status": "healthy", "service": "ShieldScan API"}
+
+
+@app.get("/debug-logs", tags=["system"])
+async def get_debug_logs():
+    """Return the last 200 log messages from the backend."""
+    return {"logs": debug_logs}
 
