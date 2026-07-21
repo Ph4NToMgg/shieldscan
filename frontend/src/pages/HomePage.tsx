@@ -32,12 +32,12 @@ export default function HomePage() {
     fetchCredits();
   }, [user]);
 
-  async function handleScan(url: string) {
+  async function handleScan(url: string, useAi: boolean) {
     setIsLoading(true);
     setError('');
 
     try {
-      const result: ScanResponse = await submitScan(url);
+      const result: ScanResponse = await submitScan(url, useAi);
       navigate(`/result/${result.id}`, { state: { scanData: result } });
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {

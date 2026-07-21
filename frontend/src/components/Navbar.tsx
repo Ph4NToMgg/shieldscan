@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getCredits, getStats } from '../api/client';
 
 export default function Navbar() {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [credits, setCredits] = useState<number | null>(null);
   const [totalScans, setTotalScans] = useState<number | null>(null);
 
@@ -25,7 +26,7 @@ export default function Navbar() {
     }
 
     fetchCredits();
-  }, [user]);
+  }, [user, location.pathname]);
 
   useEffect(() => {
     async function fetchStats() {
@@ -41,7 +42,7 @@ export default function Navbar() {
 
     const keepAlive = setInterval(fetchStats, 10 * 60 * 1000);
     return () => clearInterval(keepAlive);
-  }, []);
+  }, [location.pathname]);
 
   async function handleLogout() {
     await signOut();

@@ -23,6 +23,7 @@ router = APIRouter()
 class ScanRequest(BaseModel):
     """Request body for initiating a scan."""
     url: str
+    use_ai: bool = True
 
     @field_validator("url")
     @classmethod
@@ -90,31 +91,33 @@ async def create_scan(
         db.add(user_credits)
         await db.flush()
 
-    if user_credits.credits_remaining <= 0:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="No scan credits remaining. Purchase more credits to continue.",
-        )
-
-    # Decrement credits
-    user_credits.credits_remaining -= 1
+    if scan_request.use_ai:
+        if user_credits.credits_remaining <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="No scan credits remaining. Purchase more credits to continue.",
+            )
+        # Decrement credits
+        user_credits.credits_remaining -= 1
 
     # --- Run scan ---
     try:
         scan_results = await run_all_scans(scan_request.url)
     except Exception as exc:
         # Refund the credit on scan failure
-        user_credits.credits_remaining += 1
+        if scan_request.use_ai:
+            user_credits.credits_remaining += 1
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Failed to scan URL: {str(exc)}",
         )
 
     ai_summary: Optional[str] = None
-    try:
-        ai_summary = await generate_ai_summary(scan_request.url, scan_results)
-    except Exception:
-        ai_summary = "AI summary is temporarily unavailable."
+    if scan_request.use_ai:
+        try:
+            ai_summary = await generate_ai_summary(scan_request.url, scan_results)
+        except Exception:
+            ai_summary = "AI summary is temporarily unavailable."
 
     scan_record = ScanResult(
         url=scan_request.url,

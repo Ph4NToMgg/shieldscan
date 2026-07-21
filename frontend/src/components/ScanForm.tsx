@@ -1,13 +1,14 @@
 import { useState, FormEvent } from 'react';
 
 interface ScanFormProps {
-  onSubmit: (url: string) => void;
+  onSubmit: (url: string, useAi: boolean) => void;
   isLoading: boolean;
 }
 
 export default function ScanForm({ onSubmit, isLoading }: ScanFormProps) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
+  const [useAi, setUseAi] = useState(true);
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,11 +32,11 @@ export default function ScanForm({ onSubmit, isLoading }: ScanFormProps) {
     }
 
     setUrl(normalizedUrl);
-    onSubmit(normalizedUrl);
+    onSubmit(normalizedUrl, useAi);
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 640 }}>
+    <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 640, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <div className="scan-input-group">
         <input
           id="scan-url-input"
@@ -63,6 +64,29 @@ export default function ScanForm({ onSubmit, isLoading }: ScanFormProps) {
           ) : (
             'SCAN →'
           )}
+        </button>
+      </div>
+
+      {/* Segmented slider toggle */}
+      <div className="ai-toggle-container">
+        <div 
+          className={`ai-toggle-slide ${useAi ? 'ai-toggle-slide-right' : 'ai-toggle-slide-left'}`} 
+        />
+        <button
+          type="button"
+          className={`ai-toggle-btn ${!useAi ? 'active' : ''}`}
+          onClick={() => setUseAi(false)}
+          disabled={isLoading}
+        >
+          WITHOUT AI (FREE)
+        </button>
+        <button
+          type="button"
+          className={`ai-toggle-btn ${useAi ? 'active' : ''}`}
+          onClick={() => setUseAi(true)}
+          disabled={isLoading}
+        >
+          WITH AI (1 CREDIT)
         </button>
       </div>
 

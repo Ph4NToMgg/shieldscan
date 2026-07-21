@@ -23,8 +23,8 @@ api.interceptors.request.use(async (config) => {
  * Submit a URL for security scanning.
  * Returns the full scan result including AI summary.
  */
-export async function submitScan(url: string): Promise<ScanResponse> {
-  const response = await api.post<ScanResponse>('', { url });
+export async function submitScan(url: string, useAi: boolean = true): Promise<ScanResponse> {
+  const response = await api.post<ScanResponse>('', { url, use_ai: useAi });
   return response.data;
 }
 

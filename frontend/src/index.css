@@ -1229,3 +1229,69 @@ input {
   color: var(--text-secondary);
   letter-spacing: 0.02em;
 }
+
+/* ========================================
+   AI TOGGLE SLIDER
+   ======================================== */
+
+.ai-toggle-container {
+  position: relative;
+  display: flex;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px;
+  width: 100%;
+  max-width: 440px;
+  margin: 20px auto 0 auto;
+}
+
+.ai-toggle-slide {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  transition: transform 0.22s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index: 1;
+}
+
+.ai-toggle-slide-left {
+  transform: translateX(0);
+}
+
+.ai-toggle-slide-right {
+  transform: translateX(100%);
+}
+
+.ai-toggle-btn {
+  position: relative;
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 12px 0;
+  cursor: pointer;
+  z-index: 2;
+  transition: color var(--transition);
+}
+
+.ai-toggle-btn:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+.ai-toggle-btn.active {
+  color: var(--accent);
+}
+
+.ai-toggle-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

@@ -38,15 +38,16 @@ Please analyze these results and return a JSON response with this exact structur
   "explanations": [
     {{
       "check_name": "The name of the security check",
-      "status": "passed" or "failed",
+      "status": "warning" or "failed",
       "explanation": "A simple, non-technical explanation of what this check means and why it matters.",
-      "fix_suggestion": "A concrete, actionable step the website owner can take to fix this issue. If the check passed, provide a brief note on maintaining this."
+      "fix_suggestion": "A concrete, actionable step the website owner can take to fix this issue."
     }}
   ]
 }}
 
 Rules:
-- Include one entry in "explanations" for EVERY check result (SSL, each header, redirect).
+- Include entries in "explanations" ONLY for security checks that did NOT pass or have 'warning' or 'critical' status/severity (i.e. where severity is not "ok" or passed is false).
+- Do NOT include any entries in "explanations" for checks that passed successfully or are 'ok'.
 - Use simple language a non-technical person can understand.
 - Be specific about the actual findings — do not be generic.
 - For fix suggestions, mention specific tools, services, or configuration changes when relevant.
