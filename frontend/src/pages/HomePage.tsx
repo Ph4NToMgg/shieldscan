@@ -79,24 +79,12 @@ export default function HomePage() {
         marginTop: 0,
       }}>
         {/* Heading */}
-        <div style={{ textAlign: 'center', maxWidth: 700 }}>
-          <h1 style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(40px, 6vw, 72px)',
-            fontWeight: 400,
-            lineHeight: 1.1,
-            color: 'var(--text-primary)',
-            marginBottom: 20,
-          }}>
+        <div className="home-hero-card">
+          <h1 className="home-title">
             Security Analysis,<br />
             Without the Noise.
           </h1>
-          <p style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 16,
-            color: 'var(--text-secondary)',
-            lineHeight: 1.6,
-          }}>
+          <p className="home-subtitle">
             Enter any URL. Get a detailed security audit in seconds.
           </p>
         </div>
