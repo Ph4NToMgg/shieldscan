@@ -91,7 +91,7 @@ export default function ScoreCard({ score, totalChecks, passed, failed }: ScoreC
   }, [score]);
 
   return (
-    <div>
+    <div className="score-card-box">
       {/* Arc gauge */}
       <div style={{
         display: 'flex',
