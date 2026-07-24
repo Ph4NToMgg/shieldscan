@@ -5,11 +5,13 @@ import HomePage from './pages/HomePage';
 import ResultPage from './pages/ResultPage';
 import LoginPage from './pages/LoginPage';
 import HistoryPage from './pages/HistoryPage';
-export default function App() {
+import AetherBackground from './components/AetherBackground';
 
+export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <AetherBackground />
         <Navbar />
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -17,8 +19,6 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/history" element={<HistoryPage />} />
         </Routes>
-
-
       </AuthProvider>
     </BrowserRouter>
   );
