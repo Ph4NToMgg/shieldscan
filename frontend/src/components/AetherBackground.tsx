@@ -40,10 +40,10 @@ vec3 scene(vec2 uv) {
 void main() {
   vec2 uv=(FC-.5*R)/MN;
   vec3 col=vec3(0);
-  float s=12., e=9e-4;
+  float s=12., e=14e-4;
   col+=e/(sin(uv.x*s)*cos(uv.y*s));
   uv.y+=R.x>R.y?.5:.5*(R.y/R.x);
-  col+=scene(uv)*2.5;
+  col+=scene(uv)*3.0;
   O=vec4(col,1.);
 }`;
 
@@ -58,7 +58,7 @@ export default function AetherBackground({
   fragmentSource = DEFAULT_FRAG,
   dprMax = 2,
   clearColor = [0, 0, 0, 1],
-  overlayGradient = 'linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.2) 40%, rgba(0, 0, 0, 0.55) 100%)',
+  overlayGradient = 'linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.5) 100%)',
   className = '',
 }: AetherBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
