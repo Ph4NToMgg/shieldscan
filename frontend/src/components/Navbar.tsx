@@ -44,6 +44,17 @@ export default function Navbar() {
     return () => clearInterval(keepAlive);
   }, [location.pathname]);
 
+  const [bgEnabled, setBgEnabled] = useState(
+    () => localStorage.getItem('shieldscan_bg_enabled') !== 'false'
+  );
+
+  function toggleBg() {
+    const next = !bgEnabled;
+    setBgEnabled(next);
+    localStorage.setItem('shieldscan_bg_enabled', String(next));
+    window.dispatchEvent(new Event('shieldscan_bg_toggle'));
+  }
+
   async function handleLogout() {
     await signOut();
     navigate('/');
@@ -67,6 +78,14 @@ export default function Navbar() {
               History
             </Link>
           )}
+          <button
+            type="button"
+            className="navbar-bg-toggle"
+            onClick={toggleBg}
+            title="Toggle WebGL background animation"
+          >
+            {bgEnabled ? '✨ BG ON' : '💤 BG OFF'}
+          </button>
           {totalScans !== null && (
             <div className="navbar-stats">
               <span className="stats-pulse" />

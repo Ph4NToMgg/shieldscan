@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export type AetherBackgroundProps = {
   /* ---------- Canvas/shader ---------- */
@@ -17,7 +17,7 @@ uniform float time;
 uniform vec2 resolution;
 #define FC gl_FragCoord.xy
 #define R resolution
-#define T time
+#define T (time * 0.35)
 #define S smoothstep
 #define MN min(R.x,R.y)
 float pattern(vec2 uv) {
@@ -40,10 +40,10 @@ vec3 scene(vec2 uv) {
 void main() {
   vec2 uv=(FC-.5*R)/MN;
   vec3 col=vec3(0);
-  float s=12., e=14e-4;
+  float s=12., e=35e-4;
   col+=e/(sin(uv.x*s)*cos(uv.y*s));
   uv.y+=R.x>R.y?.5:.5*(R.y/R.x);
-  col+=scene(uv)*3.0;
+  col+=scene(uv)*2.8;
   O=vec4(col,1.);
 }`;
 
@@ -61,6 +61,16 @@ export default function AetherBackground({
   overlayGradient = 'linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.5) 100%)',
   className = '',
 }: AetherBackgroundProps) {
+  const [enabled, setEnabled] = useState(() => localStorage.getItem('shieldscan_bg_enabled') !== 'false');
+
+  useEffect(() => {
+    const handleToggle = () => {
+      setEnabled(localStorage.getItem('shieldscan_bg_enabled') !== 'false');
+    };
+    window.addEventListener('shieldscan_bg_toggle', handleToggle);
+    return () => window.removeEventListener('shieldscan_bg_toggle', handleToggle);
+  }, []);
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const glRef = useRef<WebGL2RenderingContext | null>(null);
   const programRef = useRef<WebGLProgram | null>(null);
@@ -177,6 +187,8 @@ export default function AetherBackground({
       if (programRef.current) gl.deleteProgram(programRef.current);
     };
   }, [fragmentSource, dprMax, clearColor]);
+
+  if (!enabled) return null;
 
   return (
     <div
