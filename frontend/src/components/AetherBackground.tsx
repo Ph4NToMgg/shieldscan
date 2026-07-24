@@ -15,6 +15,7 @@ precision highp float;
 out vec4 O;
 uniform float time;
 uniform vec2 resolution;
+uniform float showWave;
 #define FC gl_FragCoord.xy
 #define R resolution
 #define T (time * 0.35)
@@ -43,7 +44,7 @@ void main() {
   float s=12., e=35e-4;
   col+=e/(sin(uv.x*s)*cos(uv.y*s));
   uv.y+=R.x>R.y?.5:.5*(R.y/R.x);
-  col+=scene(uv)*2.8;
+  col+=scene(uv)*2.8 * showWave;
   O=vec4(col,1.);
 }`;
 
@@ -61,14 +62,16 @@ export default function AetherBackground({
   overlayGradient = 'linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.5) 100%)',
   className = '',
 }: AetherBackgroundProps) {
-  const [enabled, setEnabled] = useState(() => localStorage.getItem('shieldscan_bg_enabled') !== 'false');
+  const [waveEnabled, setWaveEnabled] = useState(
+    () => localStorage.getItem('shieldscan_wave_enabled') !== 'false'
+  );
 
   useEffect(() => {
     const handleToggle = () => {
-      setEnabled(localStorage.getItem('shieldscan_bg_enabled') !== 'false');
+      setWaveEnabled(localStorage.getItem('shieldscan_wave_enabled') !== 'false');
     };
-    window.addEventListener('shieldscan_bg_toggle', handleToggle);
-    return () => window.removeEventListener('shieldscan_bg_toggle', handleToggle);
+    window.addEventListener('shieldscan_wave_toggle', handleToggle);
+    return () => window.removeEventListener('shieldscan_wave_toggle', handleToggle);
   }, []);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -77,6 +80,7 @@ export default function AetherBackground({
   const bufRef = useRef<WebGLBuffer | null>(null);
   const uniTimeRef = useRef<WebGLUniformLocation | null>(null);
   const uniResRef = useRef<WebGLUniformLocation | null>(null);
+  const uniShowWaveRef = useRef<WebGLUniformLocation | null>(null);
   const rafRef = useRef<number | null>(null);
 
   // Compile helpers
@@ -142,6 +146,7 @@ export default function AetherBackground({
 
     uniTimeRef.current = gl.getUniformLocation(prog, 'time');
     uniResRef.current = gl.getUniformLocation(prog, 'resolution');
+    uniShowWaveRef.current = gl.getUniformLocation(prog, 'showWave');
 
     // Clear color
     gl.clearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
@@ -173,6 +178,7 @@ export default function AetherBackground({
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
       if (uniResRef.current) gl.uniform2f(uniResRef.current, canvas.width, canvas.height);
       if (uniTimeRef.current) gl.uniform1f(uniTimeRef.current, now * 1e-3);
+      if (uniShowWaveRef.current) gl.uniform1f(uniShowWaveRef.current, waveEnabled ? 1.0 : 0.0);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       rafRef.current = requestAnimationFrame(loop);
     };
@@ -186,9 +192,7 @@ export default function AetherBackground({
       if (bufRef.current) gl.deleteBuffer(bufRef.current);
       if (programRef.current) gl.deleteProgram(programRef.current);
     };
-  }, [fragmentSource, dprMax, clearColor]);
-
-  if (!enabled) return null;
+  }, [fragmentSource, dprMax, clearColor, waveEnabled]);
 
   return (
     <div

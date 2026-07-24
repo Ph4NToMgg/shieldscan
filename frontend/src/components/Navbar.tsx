@@ -44,15 +44,15 @@ export default function Navbar() {
     return () => clearInterval(keepAlive);
   }, [location.pathname]);
 
-  const [bgEnabled, setBgEnabled] = useState(
-    () => localStorage.getItem('shieldscan_bg_enabled') !== 'false'
+  const [waveEnabled, setWaveEnabled] = useState(
+    () => localStorage.getItem('shieldscan_wave_enabled') !== 'false'
   );
 
-  function toggleBg() {
-    const next = !bgEnabled;
-    setBgEnabled(next);
-    localStorage.setItem('shieldscan_bg_enabled', String(next));
-    window.dispatchEvent(new Event('shieldscan_bg_toggle'));
+  function toggleWave() {
+    const next = !waveEnabled;
+    setWaveEnabled(next);
+    localStorage.setItem('shieldscan_wave_enabled', String(next));
+    window.dispatchEvent(new Event('shieldscan_wave_toggle'));
   }
 
   async function handleLogout() {
@@ -81,10 +81,10 @@ export default function Navbar() {
           <button
             type="button"
             className="navbar-bg-toggle"
-            onClick={toggleBg}
-            title="Toggle WebGL background animation"
+            onClick={toggleWave}
+            title="Toggle glowing wave/tail animation"
           >
-            {bgEnabled ? '✨ BG ON' : '💤 BG OFF'}
+            {waveEnabled ? '✨ TAIL ON' : '💤 TAIL OFF'}
           </button>
           {totalScans !== null && (
             <div className="navbar-stats">
