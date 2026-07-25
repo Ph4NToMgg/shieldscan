@@ -190,24 +190,19 @@ input {
   gap: 0;
   max-width: 640px;
   width: 100%;
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .scan-input {
   flex: 1;
-  background: rgba(18, 18, 22, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
   border-right: none;
-  border-radius: 6px 0 0 6px;
+  border-radius: 2px 0 0 2px;
   color: var(--text-primary);
   font-family: var(--font-mono);
   font-size: 16px;
   padding: 16px 20px;
-  transition: border-color var(--transition), background-color var(--transition);
+  transition: border-color var(--transition);
 }
 
 .scan-input::placeholder {
@@ -216,7 +211,6 @@ input {
 
 .scan-input:focus {
   border-color: var(--accent);
-  background: rgba(22, 22, 28, 0.95);
 }
 
 .scan-input:disabled {
@@ -225,29 +219,25 @@ input {
 }
 
 .scan-btn {
-  background: linear-gradient(180deg, #f0ff33 0%, #e8ff00 100%);
-  color: #0a0a0a;
+  background: var(--accent);
+  color: var(--bg-base);
   font-family: var(--font-mono);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.1em;
   padding: 16px 28px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0 6px 6px 0;
+  border: 1px solid var(--accent);
+  border-radius: 0 2px 2px 0;
   white-space: nowrap;
-  box-shadow: 0 4px 16px rgba(232, 255, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+  transition: opacity var(--transition), background var(--transition);
 }
 
 .scan-btn:hover:not(:disabled) {
-  opacity: 0.95;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(232, 255, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  opacity: 0.9;
 }
 
 .scan-btn:active:not(:disabled) {
-  opacity: 0.85;
-  transform: translateY(0);
+  opacity: 0.8;
 }
 
 .scan-btn:disabled {
@@ -255,7 +245,7 @@ input {
 }
 
 .scan-btn-scanning {
-  background: rgba(18, 18, 22, 0.88);
+  background: var(--bg-surface);
   color: var(--accent);
   border-color: var(--border);
   font-size: 13px;
@@ -1374,16 +1364,13 @@ input {
 .ai-toggle-container {
   position: relative;
   display: flex;
-  background: rgba(18, 18, 22, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
   padding: 4px;
   width: 100%;
   max-width: 440px;
   margin: 20px auto 0 auto;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .ai-toggle-slide {
@@ -1392,10 +1379,9 @@ input {
   bottom: 4px;
   left: 4px;
   width: calc(50% - 4px);
-  background: linear-gradient(180deg, rgba(42, 42, 48, 0.95) 0%, rgba(24, 24, 28, 0.95) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 2px;
   transition: transform 0.22s cubic-bezier(0.25, 1, 0.5, 1);
   z-index: 1;
 }
@@ -1413,7 +1399,7 @@ input {
   flex: 1;
   background: none;
   border: none;
-  color: #a0a0a0;
+  color: var(--text-secondary);
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
@@ -1422,7 +1408,6 @@ input {
   cursor: pointer;
   z-index: 2;
   transition: color var(--transition);
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
 .ai-toggle-btn:hover:not(:disabled) {
@@ -1431,7 +1416,6 @@ input {
 
 .ai-toggle-btn.active {
   color: var(--accent);
-  text-shadow: 0 0 10px rgba(232, 255, 0, 0.4);
 }
 
 .ai-toggle-btn:disabled {

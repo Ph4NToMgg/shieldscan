@@ -79,7 +79,7 @@ export default function HomePage() {
         marginTop: 0,
       }}>
         {/* Heading */}
-        <div className="home-hero-card">
+        <div style={{ textAlign: 'center', maxWidth: 700 }}>
           <h1 className="home-title">
             Security Analysis,<br />
             Without the Noise.
