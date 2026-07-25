@@ -1,67 +1,132 @@
-import { useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
 export type AetherBackgroundProps = {
-  /* ---------- Canvas/shader ---------- */
-  fragmentSource?: string; // override the shader
-  dprMax?: number; // cap DPR (default 2)
-  clearColor?: [number, number, number, number];
   overlayGradient?: string;
   className?: string;
 };
 
-/* Default fragment shader (living WebGL aurora/aether pattern) */
-const DEFAULT_FRAG = `#version 300 es
-precision highp float;
-out vec4 O;
-uniform float time;
-uniform vec2 resolution;
-uniform float showWave;
-#define FC gl_FragCoord.xy
-#define R resolution
-#define T (time * 0.35)
-#define S smoothstep
-#define MN min(R.x,R.y)
-float pattern(vec2 uv) {
-  float d=.0;
-  for (float i=.0; i<3.; i++) {
-    uv.x+=sin(T*(1.+i)+uv.y*1.5)*.2;
-    d+=.005/abs(uv.x);
-  }
-  return d;	
-}
-vec3 scene(vec2 uv) {
-  vec3 col=vec3(0);
-  uv=vec2(atan(uv.x,uv.y)*2./6.28318,-log(length(uv))+T);
-  for (float i=.0; i<3.; i++) {
-    int k=int(mod(i,3.));
-    col[k]+=pattern(uv+i*6./MN);
-  }
-  return col;
-}
-void main() {
-  vec2 uv=(FC-.5*R)/MN;
-  vec3 col=vec3(0);
-  float s=12., e=35e-4;
-  col+=e/(sin(uv.x*s)*cos(uv.y*s));
-  uv.y+=R.x>R.y?.5:.5*(R.y/R.x);
-  col+=scene(uv)*2.8 * showWave;
-  O=vec4(col,1.);
-}`;
+const vertexShader = `void main(){ gl_Position = vec4(position, 1.0); }`;
 
-/* Minimal passthrough vertex shader */
-const VERT_SRC = `#version 300 es
-precision highp float;
-in vec2 position;
-void main(){ gl_Position = vec4(position, 0.0, 1.0); }
+const fragmentShader = `
+uniform float iTime;
+uniform vec3 iResolution;
+
+#define TAU 6.2831853071795865
+#define TUNNEL_LAYERS 96
+#define RING_POINTS 128
+#define POINT_SIZE 1.8
+#define POINT_COLOR_A vec3(1.0)
+#define POINT_COLOR_B vec3(0.7)
+#define SPEED 0.7
+
+float sq(float x){ return x*x; }
+
+vec2 AngRep(vec2 uv, float angle){
+  vec2 polar = vec2(atan(uv.y, uv.x), length(uv));
+  polar.x = mod(polar.x + angle/2.0, angle) - angle/2.0;
+  return polar.y * vec2(cos(polar.x), sin(polar.x));
+}
+
+float sdCircle(vec2 uv, float r){ return length(uv) - r; }
+
+vec3 MixShape(float sd, vec3 fill, vec3 target){
+  float blend = smoothstep(0.0, 1.0/iResolution.y, sd);
+  return mix(fill, target, blend);
+}
+
+vec2 TunnelPath(float x){
+  vec2 offs = vec2(
+    0.2 * sin(TAU * x * 0.5) + 0.4 * sin(TAU * x * 0.2 + 0.3),
+    0.3 * cos(TAU * x * 0.3) + 0.2 * cos(TAU * x * 0.1)
+  );
+  offs *= smoothstep(1.0, 4.0, x);
+  return offs;
+}
+
+void main(){
+  vec2 res = iResolution.xy / iResolution.y;
+  vec2 uv = gl_FragCoord.xy / iResolution.y - res/2.0;
+  vec3 color = vec3(0.0);
+  float repAngle = TAU / float(RING_POINTS);
+  float pointSize = POINT_SIZE / (2.0 * iResolution.y);
+  float camZ = iTime * SPEED;
+  vec2 camOffs = TunnelPath(camZ);
+
+  for(int i = 1; i <= TUNNEL_LAYERS; i++){
+    float pz = 1.0 - (float(i) / float(TUNNEL_LAYERS));
+    pz -= mod(camZ, 4.0 / float(TUNNEL_LAYERS));
+    vec2 offs = TunnelPath(camZ + pz) - camOffs;
+    float ringRad = 0.15 * (1.0 / sq(pz * 0.8 + 0.4));
+    if(abs(length(uv + offs) - ringRad) < pointSize * 1.5){
+      vec2 aruv = AngRep(uv + offs, repAngle);
+      float pdist = sdCircle(aruv - vec2(ringRad, 0), pointSize);
+      vec3 ptColor = (mod(float(i/2), 2.0) == 0.0) ? POINT_COLOR_A : POINT_COLOR_B;
+      float shade = (1.0 - pz);
+      color = MixShape(pdist, ptColor * shade, color);
+    }
+  }
+
+  gl_FragColor = vec4(color, 1.0);
+}
 `;
 
+type ThreeContext = {
+  renderer: THREE.WebGLRenderer;
+  scene: THREE.Scene;
+  camera: THREE.OrthographicCamera;
+  material: THREE.ShaderMaterial;
+  mesh: THREE.Mesh;
+  geometry: THREE.PlaneGeometry;
+};
+
+function createThreeForCanvas(canvas: HTMLCanvasElement, width: number, height: number): ThreeContext {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  renderer.setPixelRatio(dpr);
+  renderer.setSize(width, height);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      iTime: { value: 0 },
+      iResolution: { value: new THREE.Vector3(width, height, 1) },
+    },
+    vertexShader,
+    fragmentShader,
+  });
+
+  const geometry = new THREE.PlaneGeometry(2, 2);
+  const mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
+
+  return { renderer, scene, camera, material, mesh, geometry };
+}
+
+function disposeThree(ctx: ThreeContext) {
+  try {
+    ctx.scene.remove(ctx.mesh);
+    ctx.mesh.geometry.dispose();
+    ctx.material.dispose();
+    ctx.renderer.dispose();
+  } catch {
+    /* ignore disposal errors */
+  }
+}
+
 export default function AetherBackground({
-  fragmentSource = DEFAULT_FRAG,
-  dprMax = 2,
-  clearColor = [0, 0, 0, 1],
-  overlayGradient = 'linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.5) 100%)',
+  overlayGradient = 'linear-gradient(180deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 100%)',
   className = '',
 }: AetherBackgroundProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const ctxRef = useRef<ThreeContext | null>(null);
+  const lastTimeRef = useRef<number>(0);
+  const animRef = useRef<number | null>(null);
+  const pausedRef = useRef<boolean>(false);
+  const rafResizeRef = useRef<boolean>(false);
+
   const [waveEnabled, setWaveEnabled] = useState(
     () => localStorage.getItem('shieldscan_wave_enabled') !== 'false'
   );
@@ -74,125 +139,62 @@ export default function AetherBackground({
     return () => window.removeEventListener('shieldscan_wave_toggle', handleToggle);
   }, []);
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const glRef = useRef<WebGL2RenderingContext | null>(null);
-  const programRef = useRef<WebGLProgram | null>(null);
-  const bufRef = useRef<WebGLBuffer | null>(null);
-  const uniTimeRef = useRef<WebGLUniformLocation | null>(null);
-  const uniResRef = useRef<WebGLUniformLocation | null>(null);
-  const uniShowWaveRef = useRef<WebGLUniformLocation | null>(null);
-  const rafRef = useRef<number | null>(null);
+  const animate = useCallback((time: number) => {
+    if (!ctxRef.current) return;
+    animRef.current = requestAnimationFrame(animate);
 
-  // Compile helpers
-  const compileShader = (gl: WebGL2RenderingContext, src: string, type: number) => {
-    const sh = gl.createShader(type)!;
-    gl.shaderSource(sh, src);
-    gl.compileShader(sh);
-    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-      const info = gl.getShaderInfoLog(sh) || 'Unknown shader error';
-      gl.deleteShader(sh);
-      throw new Error(info);
+    time *= 0.001; // ms -> s
+    const delta = time - (lastTimeRef.current || time);
+    lastTimeRef.current = time;
+
+    if (!pausedRef.current && waveEnabled) {
+      ctxRef.current.material.uniforms.iTime.value += delta * 0.5;
     }
-    return sh;
-  };
+    ctxRef.current.renderer.render(ctxRef.current.scene, ctxRef.current.camera);
+  }, [waveEnabled]);
 
-  const createProgram = (gl: WebGL2RenderingContext, vs: string, fs: string) => {
-    const v = compileShader(gl, vs, gl.VERTEX_SHADER);
-    const f = compileShader(gl, fs, gl.FRAGMENT_SHADER);
-    const prog = gl.createProgram()!;
-    gl.attachShader(prog, v);
-    gl.attachShader(prog, f);
-    gl.linkProgram(prog);
-    gl.deleteShader(v);
-    gl.deleteShader(f);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-      const info = gl.getProgramInfoLog(prog) || 'Program link error';
-      gl.deleteProgram(prog);
-      throw new Error(info);
-    }
-    return prog;
-  };
-
-  // Init GL
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const gl = canvas.getContext('webgl2', { alpha: true, antialias: true });
-    if (!gl) return;
-    glRef.current = gl;
+    if (!canvas || typeof window === 'undefined') return;
 
-    // Program
-    let prog: WebGLProgram;
-    try {
-      prog = createProgram(gl, VERT_SRC, fragmentSource);
-    } catch (e) {
-      console.error('WebGL Shader Error:', e);
-      return;
-    }
-    programRef.current = prog;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const ctx = createThreeForCanvas(canvas, width, height);
+    ctxRef.current = ctx;
 
-    // Buffer
-    const verts = new Float32Array([-1, 1, -1, -1, 1, 1, 1, -1]);
-    const buf = gl.createBuffer()!;
-    bufRef.current = buf;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
-
-    // Attributes/uniforms
-    gl.useProgram(prog);
-    const posLoc = gl.getAttribLocation(prog, 'position');
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-
-    uniTimeRef.current = gl.getUniformLocation(prog, 'time');
-    uniResRef.current = gl.getUniformLocation(prog, 'resolution');
-    uniShowWaveRef.current = gl.getUniformLocation(prog, 'showWave');
-
-    // Clear color
-    gl.clearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
-
-    // Size & DPR
-    const fit = () => {
-      const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, dprMax));
-      const rect = canvas.getBoundingClientRect();
-      const cssW = Math.max(1, rect.width);
-      const cssH = Math.max(1, rect.height);
-      const W = Math.floor(cssW * dpr);
-      const H = Math.floor(cssH * dpr);
-      if (canvas.width !== W || canvas.height !== H) {
-        canvas.width = W;
-        canvas.height = H;
-      }
-      gl.viewport(0, 0, canvas.width, canvas.height);
+    const handleResize = () => {
+      if (!ctxRef.current) return;
+      if (rafResizeRef.current) return;
+      rafResizeRef.current = true;
+      requestAnimationFrame(() => {
+        rafResizeRef.current = false;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        ctxRef.current!.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        ctxRef.current!.renderer.setSize(w, h);
+        (ctxRef.current!.material.uniforms.iResolution.value as THREE.Vector3).set(w, h, 1);
+      });
     };
-    fit();
-    const onResize = () => fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(canvas);
-    window.addEventListener('resize', onResize);
+    window.addEventListener('resize', handleResize);
 
-    // RAF loop
-    const loop = (now: number) => {
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.useProgram(prog);
-      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-      if (uniResRef.current) gl.uniform2f(uniResRef.current, canvas.width, canvas.height);
-      if (uniTimeRef.current) gl.uniform1f(uniTimeRef.current, now * 1e-3);
-      if (uniShowWaveRef.current) gl.uniform1f(uniShowWaveRef.current, waveEnabled ? 1.0 : 0.0);
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      rafRef.current = requestAnimationFrame(loop);
+    const handleVisibility = () => {
+      pausedRef.current = !!document.hidden;
     };
-    rafRef.current = requestAnimationFrame(loop);
+    document.addEventListener('visibilitychange', handleVisibility);
+    handleVisibility();
 
-    // Cleanup
+    animRef.current = requestAnimationFrame(animate);
+
     return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', onResize);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      if (bufRef.current) gl.deleteBuffer(bufRef.current);
-      if (programRef.current) gl.deleteProgram(programRef.current);
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      if (ctxRef.current) {
+        disposeThree(ctxRef.current);
+        ctxRef.current = null;
+      }
     };
-  }, [fragmentSource, dprMax, clearColor, waveEnabled]);
+  }, [animate]);
 
   return (
     <div
@@ -210,7 +212,7 @@ export default function AetherBackground({
       <canvas
         ref={canvasRef}
         role="img"
-        aria-label="Living WebGL background"
+        aria-label="Infinite 3D Tunnel background"
         style={{
           position: 'absolute',
           inset: 0,
