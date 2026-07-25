@@ -44,17 +44,6 @@ export default function Navbar() {
     return () => clearInterval(keepAlive);
   }, [location.pathname]);
 
-  const [waveEnabled, setWaveEnabled] = useState(
-    () => localStorage.getItem('shieldscan_wave_enabled') !== 'false'
-  );
-
-  function toggleWave() {
-    const next = !waveEnabled;
-    setWaveEnabled(next);
-    localStorage.setItem('shieldscan_wave_enabled', String(next));
-    window.dispatchEvent(new Event('shieldscan_wave_toggle'));
-  }
-
   async function handleLogout() {
     await signOut();
     navigate('/');
@@ -78,14 +67,6 @@ export default function Navbar() {
               History
             </Link>
           )}
-          <button
-            type="button"
-            className="navbar-bg-toggle"
-            onClick={toggleWave}
-            title="Toggle glowing wave/tail animation"
-          >
-            {waveEnabled ? '✨ TAIL ON' : '💤 TAIL OFF'}
-          </button>
           {totalScans !== null && (
             <div className="navbar-stats">
               <span className="stats-pulse" />
